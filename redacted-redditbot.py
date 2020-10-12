@@ -88,7 +88,7 @@ while True:
                         #make sure the mod is not in the opt out mod list 
                         if (log.mod not in opt_out_mod_list):
                             logitem=[log.subreddit, log.description, log.target_body, log.mod_id36,log.created_utc,
-                                            log.target_title, log.target_permalink, log.details, log.action, str(log.created_utc) + log.target_fullname[-4:],
+                                            log.target_title, log.target_permalink, log.details, log.action, log.target_fullname[0:5],
                                             log.id, log.mod]
                             results.append(logitem)
                             print("Mod: {}, Subreddit: {}".format(log.mod, log.subreddit, log.created_utc))

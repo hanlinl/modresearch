@@ -94,10 +94,13 @@ while True:
                                             'id', '_mod']) 
                         print('existing logs', len(existing_logs)) 
                         existing_logs = existing_logs.append(new_logs)
+                        
                         existing_logs = existing_logs[['subreddit', 'description', 'target_body', 'mod_id36', 'created_utc',
                                             'target_title', 'target_permalink', 'details', 'action', 'target_author',
                                             'id', '_mod']]
-                        existing_logs = existing_logs.drop_duplicates(subset=['id'])  
+                      
+                        existing_logs.drop_duplicates(subset=['id'], inplace = True)
+                        existing_logs = existing_logs[~existing_logs['_mod'].isin(opt_out_mod_list)]
                         print('final logs', len(existing_logs))
                         existing_logs.to_csv(sub+'.csv', index= False)   
                     except:

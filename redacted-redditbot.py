@@ -1,13 +1,6 @@
-
 import praw
-import os.path
 import time
-
-import csv
-
-from datetime import datetime
-import pandas as pd   
-
+import pandas as pd
 from datetime import datetime
 import yagmail
 

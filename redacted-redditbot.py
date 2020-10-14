@@ -13,7 +13,38 @@ def get_subs():
                 sub_list.append(sub["sr"])
             return sub_list
 
-    
+def handle_msgs():
+            while True: 
+                        try: 
+                            inbox = reddit.inbox.unread()
+                            for message in inbox:
+                                #if a msg's subject is withdraw, add the sender to opt out mod list 
+                                if (message.subject).lower() =='withdraw':
+                                    opt_out_mod_list = opt_out_mod_list + message.author.name + ' '
+                                    message.reply('Thank you for the message! I will not collect your moderation actions for our study.')
+                                    message.mark_read()
+                                #if a msg is an invitation, accept it
+                                if message.body.startswith('gadzooks!'):
+                                    print(message.subreddit.display_name)
+                                    print(message.body)
+                                    sr = reddit.subreddit(message.subreddit.display_name)
+                                    try:
+                                        sr.mod.accept_invite()
+                                        message.reply('Thank you for adding me! I am a bot developed by a research team at Northwestern University to study moderator labor practices(see u/mod_research for details). I will be collecting your community’s mod logs for a maximum of two months. Your mod logs will never be shared with anyone outside of the research team. If anyone on your moderator team does not want me to collect their moderation actions, just send me a direct message with the subject line being “WITHDRAW”. Then the corresponding subset of mod logs will be deleted within 24 hours. ')
+                                        message.mark_read()
+                                        print('accept ' + message.subreddit.fullname)
+                                    except:
+                                        myFile.write('invalid invite')
+                                        message.mark_read()
+                            break        
+                        except:
+                            myFile.write('\nwait unread msgs ')
+                            time.sleep(2)
+
+#def collect_logs():
+
+#def get_opt_out_mod():
+            
 
 while True: 
     try: 
@@ -36,32 +67,8 @@ while True:
         myFile.write('\nget opt out mods: ' + opt_out_mod_list)
         
         #read unread messages 
-        while True: 
-            try: 
-                inbox = reddit.inbox.unread()
-                for message in inbox:
-                    #if a msg's subject is withdraw, add the sender to opt out mod list 
-                    if (message.subject).lower() =='withdraw':
-                        opt_out_mod_list = opt_out_mod_list + message.author.name + ' '
-                        message.reply('Thank you for the message! I will not collect your moderation actions for our study.')
-                        message.mark_read()
-                    #if a msg is an invitation, accept it
-                    if message.body.startswith('gadzooks!'):
-                        print(message.subreddit.display_name)
-                        print(message.body)
-                        sr = reddit.subreddit(message.subreddit.display_name)
-                        try:
-                            sr.mod.accept_invite()
-                            message.reply('Thank you for adding me! I am a bot developed by a research team at Northwestern University to study moderator labor practices(see u/mod_research for details). I will be collecting your community’s mod logs for a maximum of two months. Your mod logs will never be shared with anyone outside of the research team. If anyone on your moderator team does not want me to collect their moderation actions, just send me a direct message with the subject line being “WITHDRAW”. Then the corresponding subset of mod logs will be deleted within 24 hours. ')
-                            message.mark_read()
-                            print('accept ' + message.subreddit.fullname)
-                        except:
-                            myFile.write('invalid invite')
-                            message.mark_read()
-                break        
-            except:
-                myFile.write('\nwait unread msgs ')
-                time.sleep(2)
+        handle_msgs()
+
         #write opt out mod list to file 
         opt_out_mods = open("opt_out_mods.txt", "w")
         opt_out_mods.write(opt_out_mod_list)

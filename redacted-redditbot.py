@@ -45,6 +45,65 @@ def handle_msgs():
 
 #def get_opt_out_mod():
             
+def collect_modlogs(sub, opt_out_mod_list, last_action=None):
+    results =[]
+    if last_action: 
+        for log in reddit.subreddit(sub).mod.log(limit=500, params={'after':last_action}):
+            logitem=[log.subreddit, log.description, log.target_body, log.mod_id36,log.created_utc,
+                    log.target_title, log.target_permalink, log.details, log.action, str(log.target_fullname)[0:6],
+                    log.id, log.mod]
+            results.append(logitem)
+    else:
+        for log in reddit.subreddit(sub).mod.log(limit=500):
+            logitem=[log.subreddit, log.description, log.target_body, log.mod_id36,log.created_utc,
+                    log.target_title, log.target_permalink, log.details, log.action, str(log.target_fullname)[0:6],
+                    log.id, log.mod]
+            results.append(logitem)
+            
+    existing_logs = pd.DataFrame(results, columns =['subreddit', 'description', 'target_body', 'mod_id36', 'created_utc',
+                'target_title', 'target_permalink', 'details', 'action', 'target_author','id', '_mod'])
+    
+    last_action = existing_logs.loc[len(existing_logs)-1, 'id']
+    time.sleep(2)
+
+    print(sub)
+    key=1
+    threshold = len(existing_logs)
+    
+    while (threshold>=500): 
+        if 'modlog_research_bot' is in existing_logs['_mod']: 
+            break
+        else: 
+            results =[]
+            for log in reddit.subreddit(sub).mod.log(limit=500, params={'after':last_action}):
+                logitem=[log.subreddit, log.description, log.target_body, log.mod_id36,log.created_utc,
+                        log.target_title, log.target_permalink, log.details, log.action, str(log.target_fullname)[0:6],
+                        log.id, log.mod]
+                results.append(logitem)
+            new_logs = pd.DataFrame(results, columns =['subreddit', 'description', 'target_body', 'mod_id36', 'created_utc',
+                        'target_title', 'target_permalink', 'details', 'action', 'target_author','id', '_mod'])
+
+            #new_logs = new_logs.sort_values('created_utc', ascending = True)
+            existing_logs = existing_logs.append(new_logs)
+            #print(len(new_logs), new_logs.loc[0,'created_utc'], new_logs.loc[499,'created_utc'])  
+            threshold = len(new_logs)
+            if threshold <500:
+                print('end')
+                break
+            else:
+                last_action = new_logs.loc[499,'id']
+                print(key)
+                key = key+1
+                time.sleep(2)
+        
+            
+    existing_logs = existing_logs[['subreddit', 'description', 'target_body', 'mod_id36', 'created_utc',
+                                                    'target_title', 'target_permalink', 'details', 'action', 'target_author',
+                                                    'id', '_mod']]
+    existing_logs.drop_duplicates(subset=['id'], inplace=True)
+    opt_out_mod_list = existing_logs[~existing_logs['_mod'].isin(opt_out_mod_list)]
+    existing_logs.to_csv('historical/Nov11/'+sub+'.csv', index= False)
+
 
 while True: 
     try: 
@@ -80,49 +139,16 @@ while True:
         myFile.write('\nthe bot is added to these subs: ' + str(subreddit_list))
 
         for sub in subreddit_list:
-            while True: 
-                try: 
-                    results =[]
-                    #get mod log 
-                    for log in reddit.subreddit(sub).mod.log():
-                        #make sure the mod is not in the opt out mod list 
-                        if (log.mod not in opt_out_mod_list):
-                            logitem=[log.subreddit, log.description, log.target_body, log.mod_id36,log.created_utc,
-                                            log.target_title, log.target_permalink, log.details, log.action, log.target_fullname[0:5],
-                                            log.id, log.mod]
-                            results.append(logitem)
-                            print("Mod: {}, Subreddit: {}".format(log.mod, log.subreddit, log.created_utc))
-                    #save mod log 
-                    try:
-                        
-                        existing_logs = pd.read_csv(sub+'.csv', index_col=None)
-                        new_logs = pd.DataFrame(results, columns =['subreddit', 'description', 'target_body', 'mod_id36', 'created_utc',
-                                            'target_title', 'target_permalink', 'details', 'action', 'target_author',
-                                            'id', '_mod']) 
-                        print('existing logs', len(existing_logs)) 
-                        existing_logs = existing_logs.append(new_logs)
-                        
-                        existing_logs = existing_logs[['subreddit', 'description', 'target_body', 'mod_id36', 'created_utc',
-                                            'target_title', 'target_permalink', 'details', 'action', 'target_author',
-                                            'id', '_mod']]
-                      
-                        existing_logs.drop_duplicates(subset=['id'], inplace = True)
-                        existing_logs = existing_logs[~existing_logs['_mod'].isin(opt_out_mod_list)]
-                        print('final logs', len(existing_logs))
-                        existing_logs.to_csv(sub+'.csv', index= False)   
-                    except:
-                        
-                        existing_logs = pd.DataFrame(results, columns =['subreddit', 'description', 'target_body', 'mod_id36', 'created_utc',
-                                            'target_title', 'target_permalink', 'details', 'action', 'target_author',
-                                            'id', '_mod'])
-                        existing_logs.to_csv(sub+'.csv', index= False)   
-                    
-                    
-                    myFile.write('\nwrite: ' + sub)
-                    break 
-                except:
-                    myFile.write('\nwait')
-                    time.sleep(2)
+        
+            try:
+                mod_df = pd.read_csv('historical/Nov10/'+ sub + '.csv')
+                
+                mod_df = mod_df.sort_values('created_utc')
+                last_action = mod_df.loc[len(mod_df)-1, 'id']
+                collect_modlogs(sub, opt_out_mod_list, last_action)
+                
+            except:
+                collect_modlogs(sub, opt_out_mod_list)
             
             time.sleep(2)
         yag.send([RESEARCH_EMAIL],' success'])
